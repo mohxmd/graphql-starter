@@ -92,3 +92,9 @@ Available codes: `BAD_USER_INPUT`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, 
 ## 🧑‍💻 Contributing
 
 PRs and issues are welcome! 🎉 Fork it, hack it, and send improvements.
+
+## 🚀 Roadmap
+
+- [ ] Subscription example
+- [ ] Default error handling
+- [ ] GraphQLException v2
