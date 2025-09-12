@@ -92,9 +92,3 @@ Available codes: `BAD_USER_INPUT`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, 
 ## 🧑‍💻 Contributing
 
 PRs and issues are welcome! 🎉 Fork it, hack it, and send improvements.
-
----
-
-## 📜 License
-
-MIT © 2025 Breeze Starter
