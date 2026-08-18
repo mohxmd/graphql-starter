@@ -3,10 +3,9 @@ export const taskTypeDefs = /* GraphQL */ `
     id: ID!
     name: String!
     done: Boolean!
-
     createdAt: String!
     updatedAt: String!
-    deletedAt: String!
+    deletedAt: String
   }
 
   input CreateTaskInput {
@@ -20,7 +19,7 @@ export const taskTypeDefs = /* GraphQL */ `
   }
 
   extend type Query {
-    tasks: [Task!]!
+    tasks(limit: Int, offset: Int): [Task!]!
     task(id: ID!): Task
   }
 

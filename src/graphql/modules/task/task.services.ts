@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type z from "zod";
 
 import { db } from "@/db";
@@ -6,16 +6,18 @@ import { insertTasksSchema, patchTasksSchema, task } from "@/db/schema";
 import { GraphQLException } from "@/lib/error/exceptions";
 
 export class TaskService {
-  static async getAllTasks() {
-    return await db.select().from(task);
+  static async getAllTasks(options: { limit?: number; offset?: number } = {}) {
+    const safeLimit = Math.min(Math.max(1, options.limit ?? 50), 100);
+    const safeOffset = Math.max(0, options.offset ?? 0);
+
+    return await db.select().from(task).limit(safeLimit).offset(safeOffset);
   }
 
   static async getTaskById(id: string) {
     const [result] = await db.select().from(task).where(eq(task.id, id));
-    if (!result)
-      throw new GraphQLException("NOT_FOUND", {
-        message: "Task not found",
-      });
+    if (!result) {
+      throw GraphQLException.notFound(`Task with ID "${id}" not found`);
+    }
     return result;
   }
 
@@ -37,28 +39,44 @@ export class TaskService {
     const validatedInput = patchTasksSchema.parse(input);
     const { id, ...updates } = validatedInput;
 
-    await TaskService.getTaskById(id);
-
     const [updatedTask] = await db
       .update(task)
-      .set(updates)
+      .set({
+        ...updates,
+        updatedAt: sql`(CURRENT_TIMESTAMP)`,
+      })
       .where(eq(task.id, id))
       .returning();
+
+    if (!updatedTask) {
+      throw GraphQLException.notFound(`Task with ID "${id}" not found`);
+    }
 
     return updatedTask;
   }
 
   static async deleteTask(id: string) {
-    await TaskService.getTaskById(id);
-    const [result] = await db.delete(task).where(eq(task.id, id)).returning();
-    return result;
+    const [deletedRecord] = await db
+      .delete(task)
+      .where(eq(task.id, id))
+      .returning();
+
+    if (!deletedRecord) {
+      throw GraphQLException.notFound(`Task with ID "${id}" not found`);
+    }
+
+    return true;
   }
 
   static async toggleTaskComplete(id: string) {
-    const _task = await TaskService.getTaskById(id);
+    const existing = await TaskService.getTaskById(id);
+
     const [updatedTask] = await db
       .update(task)
-      .set({ done: !_task.done })
+      .set({
+        done: !existing.done,
+        updatedAt: sql`(CURRENT_TIMESTAMP)`,
+      })
       .where(eq(task.id, id))
       .returning();
 

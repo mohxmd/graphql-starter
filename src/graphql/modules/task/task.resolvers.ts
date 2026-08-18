@@ -6,12 +6,12 @@ import { TaskService } from "./task.services";
 
 export const taskResolvers = {
   Query: {
-    tasks: async () => {
-      return await TaskService.getAllTasks();
+    tasks: async (_: unknown, args: { limit?: number; offset?: number }) => {
+      return await TaskService.getAllTasks(args);
     },
 
-    task: async (_: unknown, { id }: { id: string }) => {
-      return await TaskService.getTaskById(id);
+    task: async (_: unknown, { id }: { id: string }, ctx: Context) => {
+      return await ctx.loaders.taskLoader.load(id);
     },
   },
 
@@ -19,60 +19,60 @@ export const taskResolvers = {
     createTask: async (
       _: unknown,
       { input }: { input: z.infer<typeof insertTasksSchema> },
-      _context: Context
+      _ctx: Context
     ) => {
       try {
         return await TaskService.createTask(input);
       } catch (error) {
-        throw new GraphQLException("INTERNAL_ERROR", {
-          message: "Failed to create task",
-          cause: error as Error,
-        });
+        if (error instanceof GraphQLException) throw error;
+        throw GraphQLException.internal(
+          "Failed to create task",
+          error as Error
+        );
       }
     },
 
     updateTask: async (
       _: unknown,
       { input }: { input: z.infer<typeof patchTasksSchema> },
-      _context: Context
+      _ctx: Context
     ) => {
       try {
         return await TaskService.updateTask(input);
       } catch (error) {
-        throw new GraphQLException("INTERNAL_ERROR", {
-          message: "Failed to update task",
-          cause: error as Error,
-        });
+        if (error instanceof GraphQLException) throw error;
+        throw GraphQLException.internal(
+          "Failed to update task",
+          error as Error
+        );
       }
     },
 
-    deleteTask: async (
-      _: unknown,
-      { id }: { id: string },
-      _context: Context
-    ) => {
+    deleteTask: async (_: unknown, { id }: { id: string }, _ctx: Context) => {
       try {
         return await TaskService.deleteTask(id);
       } catch (error) {
-        throw new GraphQLException("INTERNAL_ERROR", {
-          message: "Failed to delete task",
-          cause: error as Error,
-        });
+        if (error instanceof GraphQLException) throw error;
+        throw GraphQLException.internal(
+          "Failed to delete task",
+          error as Error
+        );
       }
     },
 
     toggleTaskComplete: async (
       _: unknown,
       { id }: { id: string },
-      _context: Context
+      _ctx: Context
     ) => {
       try {
         return await TaskService.toggleTaskComplete(id);
       } catch (error) {
-        throw new GraphQLException("INTERNAL_ERROR", {
-          message: "Failed to toggle task",
-          cause: error as Error,
-        });
+        if (error instanceof GraphQLException) throw error;
+        throw GraphQLException.internal(
+          "Failed to toggle task",
+          error as Error
+        );
       }
     },
   },
