@@ -6,11 +6,14 @@ const EnvSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
-  DB_FILE_NAME: z.string().default("breeze.sqlite"),
+  DATABASE_URL: z
+    .string()
+    .default("postgresql://postgres:postgres@localhost:5432/breeze_db"),
+  REDIS_URL: z.string().default("redis://localhost:6379"),
   DEBUG: z.string().default("1"),
   JWT_SECRET: z
     .string()
-    .default("dev-secret-change-in-production-min-32-chars-long"),
+    .default("super-secret-key-change-in-production-min-32-chars-long"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

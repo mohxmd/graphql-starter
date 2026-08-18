@@ -1,18 +1,16 @@
-import { randomUUID } from "node:crypto";
-import { integer, text } from "drizzle-orm/sqlite-core";
+import { timestamp, uuid } from "drizzle-orm/pg-core";
 
-export const id = text()
-  .primaryKey()
-  .$defaultFn(() => randomUUID());
+export const id = uuid("id").defaultRandom().primaryKey();
 
-export const createdAt = integer({ mode: "timestamp" }).$defaultFn(
-  () => new Date()
-);
+export const timestamps = {
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
 
-export const updatedAt = integer({ mode: "timestamp" })
-  .$defaultFn(() => new Date())
-  .$onUpdate(() => new Date());
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
 
-export const deletedAt = integer({ mode: "timestamp" });
-
-export const timestamps = { createdAt, updatedAt, deletedAt };
+  deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "date" }),
+};

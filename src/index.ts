@@ -2,14 +2,16 @@ import { createYoga } from "graphql-yoga";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
-import { db } from "./db";
+import { db, queryClient } from "./db";
 import env from "./env";
 import { createContext } from "./graphql/context";
 import { schema } from "./graphql/schema";
+import { getRedisClient } from "./lib/redis";
 import { logger } from "./lib/utils/logger";
 
 const app = new Hono();
 
+// Middleware
 app.use(
   "*",
   cors({
@@ -20,7 +22,6 @@ app.use(
   })
 );
 
-// Request Logger
 app.use("*", async (c, next) => {
   const start = performance.now();
   await next();
@@ -28,25 +29,36 @@ app.use("*", async (c, next) => {
   logger.info(`${c.req.method} ${c.req.path} ${c.res.status} - ${duration}ms`);
 });
 
-// Health & Information Endpoints
+// Service Information
 app.get("/", (c) => {
   return c.json({
     name: "breeze-graphql-api",
     version: "1.0.0",
+    engine: "GraphQL Yoga + Hono + Drizzle ORM (PostgreSQL 17) + Redis",
     environment: env.NODE_ENV,
     graphql: `http://localhost:${env.PORT}/graphql`,
     health: `http://localhost:${env.PORT}/health`,
   });
 });
 
+// Health Checks
 app.get("/health", async (c) => {
   let dbStatus = "unknown";
+  let redisStatus = "unknown";
+
   try {
-    // Quick SQLite health probe
     await db.query.task.findFirst();
     dbStatus = "connected";
   } catch (error: unknown) {
     dbStatus = `error: ${error instanceof Error ? error.message : String(error)}`;
+  }
+
+  try {
+    const redis = getRedisClient();
+    const pong = await redis.ping();
+    redisStatus = pong === "PONG" ? "connected" : "degraded";
+  } catch (error: unknown) {
+    redisStatus = `error: ${error instanceof Error ? error.message : String(error)}`;
   }
 
   const isHealthy = dbStatus === "connected";
@@ -54,13 +66,14 @@ app.get("/health", async (c) => {
     {
       status: isHealthy ? "healthy" : "degraded",
       database: dbStatus,
+      redis: redisStatus,
       timestamp: new Date().toISOString(),
     },
     isHealthy ? 200 : 503
   );
 });
 
-// Example Webhooks Router (e.g. Stripe / Payment Webhooks)
+// Webhook Handlers
 app.post("/webhooks/stripe", async (c) => {
   const signature = c.req.header("stripe-signature");
   const rawBody = await c.req.text();
@@ -70,11 +83,10 @@ app.post("/webhooks/stripe", async (c) => {
     bodyLength: rawBody.length,
   });
 
-  // Handle Stripe signature verification & subscription updates here...
   return c.json({ received: true });
 });
 
-// GraphQL Yoga Instance
+// GraphQL Yoga Server
 const yoga = createYoga({
   schema,
   context: createContext,
@@ -109,12 +121,11 @@ const yoga = createYoga({
   maskedErrors: env.NODE_ENV === "production",
 });
 
-// Mount GraphQL Yoga Handler to Hono
 app.all("/graphql", async (c) => {
   return yoga.fetch(c.req.raw, c);
 });
 
-//  Start Server on Bun Runtime
+// HTTP Server
 const server = Bun.serve({
   port: Number(env.PORT) || 3000,
   fetch: app.fetch,
@@ -125,10 +136,15 @@ logger.info(
   `⚡ GraphQL Studio: http://${server.hostname}:${server.port}/graphql`
 );
 
-// Graceful Shutdown
-const handleShutdown = (signal: string) => {
-  logger.info(`${signal} signal received. Closing server gracefully...`);
+// Lifecycle & Graceful Shutdown
+const handleShutdown = async (signal: string) => {
+  logger.info(`${signal} signal received. Closing connections gracefully...`);
   server.stop();
+  try {
+    await queryClient.end({ timeout: 5 });
+    const redis = getRedisClient();
+    redis.disconnect();
+  } catch {}
   process.exit(0);
 };
 

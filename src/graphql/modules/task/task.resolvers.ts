@@ -2,6 +2,7 @@ import type z from "zod";
 import type { insertTasksSchema, patchTasksSchema } from "@/db/schema";
 import type { Context } from "@/graphql/context";
 import { GraphQLException } from "@/lib/error/exceptions";
+import type { TaskRecord } from "./task.loader";
 import { TaskService } from "./task.services";
 
 export const taskResolvers = {
@@ -75,5 +76,18 @@ export const taskResolvers = {
         );
       }
     },
+  },
+
+  Task: {
+    createdAt: (t: TaskRecord) =>
+      t.createdAt
+        ? new Date(t.createdAt).toISOString()
+        : new Date().toISOString(),
+    updatedAt: (t: TaskRecord) =>
+      t.updatedAt
+        ? new Date(t.updatedAt).toISOString()
+        : new Date().toISOString(),
+    deletedAt: (t: TaskRecord) =>
+      t.deletedAt ? new Date(t.deletedAt).toISOString() : null,
   },
 };

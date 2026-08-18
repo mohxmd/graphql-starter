@@ -1,14 +1,14 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { boolean, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import z from "zod";
 
 import { id, timestamps } from "./_helpers";
 
-export const task = sqliteTable("task", {
+export const task = pgTable("tasks", {
   id,
 
-  name: text().notNull(),
-  done: integer({ mode: "boolean" }).notNull().default(false),
+  name: text("name").notNull(),
+  done: boolean("done").notNull().default(false),
 
   ...timestamps,
 });
@@ -16,5 +16,5 @@ export const task = sqliteTable("task", {
 export const selectTasksSchema = createSelectSchema(task);
 export const insertTasksSchema = createInsertSchema(task);
 export const patchTasksSchema = insertTasksSchema.partial().extend({
-  id: z.string(),
+  id: z.string().uuid(),
 });

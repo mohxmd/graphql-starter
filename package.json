@@ -7,16 +7,19 @@
     "dev": "bun run --hot src/index.ts",
     "format": "biome format --write",
     "lint": "biome lint --write",
+    "typecheck": "tsc --noEmit",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun run src/db/migrate.ts",
-    "db:update": "drizzle-kit generate && drizzle-kit migrate",
-    "db:seed": "bun ./src/drizzle/seed.ts",
     "db:push": "drizzle-kit push",
-    "db:start-studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
     "@types/bun": "latest",
+    "@types/ioredis": "^5.0.0",
     "drizzle-kit": "^0.31.4"
   },
   "peerDependencies": {
@@ -30,7 +33,9 @@
     "graphql": "^16.11.0",
     "graphql-yoga": "^5.15.2",
     "hono": "^4.13.2",
+    "ioredis": "^6.0.0",
     "jose": "^6.2.9",
+    "postgres": "^3.4.9",
     "zod": "^4.1.8"
   }
 }

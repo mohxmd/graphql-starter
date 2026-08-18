@@ -4,9 +4,9 @@ import env from "@/env";
 export default defineConfig({
   out: "./src/db/migrations",
   schema: "./src/db/schema/*",
-  dialect: "sqlite",
+  dialect: "postgresql",
   dbCredentials: {
-    url: env.DB_FILE_NAME,
+    url: env.DATABASE_URL,
   },
   casing: "snake_case",
   strict: true,
